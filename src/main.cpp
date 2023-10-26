@@ -3,18 +3,26 @@
 
 int main()
 {
+    // Settings and window definitions
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
 
     auto window = sf::RenderWindow{ { 1920u, 1080u }, "CMake SFML Project", sf::Style::Fullscreen, settings };
     window.setFramerateLimit(60);
 
+    // Defining circle qualities
     auto radius = 50.f;
     sf::CircleShape circle(radius);
     circle.setPosition((window.getSize().x / 2) - radius, 10.f);
 
-    float mv_velo = 0;
+    // Physics variables
+    float dt = 0.5f;
+    float velo_x = 12.5f;
+    float velo_y = 0.0f;
+    float accel_x = 0.0f;
+    float accel_y = 1.0f;
 
+    // Main loop
     while (window.isOpen())
     {
         auto mid_s = (window.getSize().x / 2) - radius;
@@ -26,34 +34,68 @@ int main()
             }
 
             if (event.type == sf::Event::KeyPressed) {
-                circle.setPosition(mid_s, 10.f);
+                if (event.key.scancode == sf::Keyboard::Scan::W) {
+                    velo_y = velo_y - 2.5f;
+                }
+
+                if (event.key.scancode == sf::Keyboard::Scan::S) {
+                    velo_y = velo_y + 2.5f;
+                }
+
+                if (event.key.scancode == sf::Keyboard::Scan::A) {
+                    velo_x = velo_x - 2.5f;
+                }
+
+                if (event.key.scancode == sf::Keyboard::Scan::D) {
+                    velo_x = velo_x + 2.5f;
+                }
             }
         }
-
 
         // Clear the window w/ a black bg
         window.clear(sf::Color::Black);
 
-        // Move circle
-        circle.move(0, mv_velo);
+        // Movement physics
+        velo_x = velo_x + accel_x * dt;
+        velo_y = velo_y + accel_y * dt;
+        circle.move(velo_x * dt, velo_y * dt);
 
-        // Add to move velocity
-        mv_velo += 0.95;
+        // Check x and y bounds
+        if (circle.getPosition().y >= (window.getSize().y - radius * 2) || circle.getPosition().y < 0) {
+                // Reverse & dampen
+                velo_y = velo_y * -0.95;
 
-        // Check bounds
-        if (circle.getPosition().y >= (window.getSize().y - radius * 2)) {
-            // Reverse & dampen
-            mv_velo = mv_velo * -0.9;
-            circle.setPosition(mid_s, window.getSize().y - radius * 2);
+                // Make sure the ball doesn't go off screen
+                if (circle.getPosition().y < 0) {
+                    circle.setPosition(circle.getPosition().x, 0);
+                }
+
+                if (circle.getPosition().y >= (window.getSize().y - radius * 2)) {
+                    circle.setPosition(circle.getPosition().x, window.getSize().y - radius * 2);
+                }
         }
 
-        // Set color
-        circle.setFillColor(sf::Color(100, 250 * (1 / mv_velo), 100 * (1 / mv_velo)));
+        if (circle.getPosition().x >= (window.getSize().x - radius * 2) || circle.getPosition().x < 0) {
+                // Reverse & dampen
+                velo_x = velo_x * -0.9;
+                accel_x = accel_x * -1;
+                
+                // Make sure the ball doesn't go off screen
+                if (circle.getPosition().x >= (window.getSize().x - radius * 2)) {
+                    circle.setPosition(window.getSize().x - radius * 2, circle.getPosition().y);
+                }
 
-        // Draw entities
+                if (circle.getPosition().x < 0) {
+                    circle.setPosition(0, circle.getPosition().y);
+                }
+        }
+
+        // Color and draw circle
+        circle.setFillColor(sf::Color(250 * (1 / (velo_x * velo_y)), 250 * (1 / velo_x), 250 * (1 / velo_y)));
         window.draw(circle);
 
         // Display utilities
         window.display();
+
     }
 }
